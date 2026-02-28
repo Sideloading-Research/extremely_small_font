@@ -82,10 +82,45 @@ let renderTimeout = null;
 let currentCanvases = [];
 let selectedFile = null;
 
+function parseCsvLine(line) {
+    const fields = [];
+    let pos = 0;
+    while (pos < line.length) {
+        if (line[pos] === '"') {
+            let value = '';
+            pos++;
+            while (pos < line.length) {
+                if (line[pos] === '"' && pos + 1 < line.length && line[pos + 1] === '"') {
+                    value += '"';
+                    pos += 2;
+                } else if (line[pos] === '"') {
+                    pos++;
+                    break;
+                } else {
+                    value += line[pos];
+                    pos++;
+                }
+            }
+            fields.push(value);
+            if (pos < line.length && line[pos] === ',') pos++;
+        } else {
+            const nextComma = line.indexOf(',', pos);
+            if (nextComma === -1) {
+                fields.push(line.substring(pos));
+                break;
+            }
+            fields.push(line.substring(pos, nextComma));
+            pos = nextComma + 1;
+            if (pos === line.length) fields.push('');
+        }
+    }
+    return fields;
+}
+
 // Parse CSV definitions
 function parseCsv(csvText) {
     const chars = {};
-    const lines = csvText.split('\n').map(l => l.split(','));
+    const lines = csvText.split('\n').map(parseCsvLine);
     let currChar = null;
     let currGrid = [];
 
