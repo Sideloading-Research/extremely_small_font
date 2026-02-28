@@ -1,5 +1,6 @@
 import argparse
 import csv
+import unicodedata
 from PIL import Image, ImageDraw
 import sys
 
@@ -320,7 +321,9 @@ def main():
         '\u2009': ' ',# THIN SPACE
         '\u202f': ' ',# NARROW NO-BREAK SPACE
     }
-    
+
+    text = unicodedata.normalize("NFC", text)
+
     for k, v in typographic_replacements.items():
         text = text.replace(k, v)
 
@@ -329,11 +332,11 @@ def main():
 
     chars = parse_csv(args.font_csv)
 
-    if args.transliterate and not is_font_supports_russian(chars):
-        text = transliterate_russian(text)
-
-    known_chars = set(chars.keys()) | {' ', '\n'}
-    text = encode_unknown_chars(text, known_chars)
+    if args.transliterate:
+        if not is_font_supports_russian(chars):
+            text = transliterate_russian(text)
+        known_chars = set(chars.keys()) | {' ', '\n'}
+        text = encode_unknown_chars(text, known_chars)
 
     if args.extreme:
         subscript_map = {

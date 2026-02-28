@@ -240,6 +240,8 @@ function normalizeText(text, isExtreme, isCompact, legend) {
         t = `[[CHARACTERS LEGEND: ${legend} CHARACTERS LEGEND END.]]\n\n` + t;
     }
 
+    t = t.normalize("NFC");
+
     for (const [k, v] of Object.entries(typographicReplacements)) {
         t = t.split(k).join(v);
     }
@@ -315,11 +317,14 @@ async function renderText(customText = null, showProgress = false) {
 
     let text = normalizeText(rawText, isExtreme, isCompact, legend);
 
-    if (els.transliterate.checked && !isFontSupportsRussian(chars)) {
-        text = transliterateRussian(text);
+    if (els.transliterate.checked) {
+        if (!isFontSupportsRussian(chars)) {
+            text = transliterateRussian(text);
+        }
+        text = encodeUnknownChars(text, knownChars);
     }
 
-    let cleanText = encodeUnknownChars(text, knownChars);
+    let cleanText = text;
 
     if (isExtreme) {
         cleanText = applySubscriptDigits(cleanText);
