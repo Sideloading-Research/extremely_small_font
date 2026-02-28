@@ -6,7 +6,7 @@ Useful for backups of important data on paper, metal, stone, etc.
 
 If you want to use the fonts in your text editor, you can find the TTF files in the ttf_fonts dir.
 
-But we recommend to render the images directly, to achieve the pixel-level quality. For this, you can use render_text.py in the tools dir.
+But we recommend to render the images directly, to achieve the pixel-level quality. For this, you can use render_text.py in the tools dir, or our free [web tool](https://sideloading-research.github.io/extremely_small_font/).
 
 # Fonts
 
