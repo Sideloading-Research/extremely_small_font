@@ -71,9 +71,9 @@ def main():
     parser.add_argument("--text", required=True, help="Input text file")
     parser.add_argument("--out", default="output.png", help="Output PNG file")
     parser.add_argument("--dpi", type=int, default=300, help="Printing resolution (DPI)")
-    parser.add_argument("--font-csv", default=None, help="Font CSV file, defaults to the size-appropriate CSV in definitions directory if unspecified.")
+    parser.add_argument("--font-csv", default=None, help="Font CSV file, defaults to the size-appropriate CSV in docs/definitions directory if unspecified.")
     parser.add_argument("--scale", type=int, default=1, help="Scale factor (e.g. 2 means 2x2 pixels per cell)")
-    parser.add_argument("--size", choices=["4x3", "5x4"], default="5x4", help="Font grid size to use (for max cols/rows)")
+    parser.add_argument("--size", choices=["4x3", "5x4", "5x5"], default="5x5", help="Font grid size to use (for max cols/rows)")
     parser.add_argument("--margin-mm", type=int, default=10, help="Margin in mm")
     parser.add_argument("--line-gap", type=int, default=1, help="Gap between lines in pixels")
     parser.add_argument("--compact", action="store_true", help="Compact mode: ignore newlines and continuous spaces to save space")
@@ -86,9 +86,11 @@ def main():
         import os
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         if args.size == "4x3":
-            args.font_csv = os.path.join(base_dir, "definitions", "Times_Sitelew_Roman_4x3_pixels.csv")
+            args.font_csv = os.path.join(base_dir, "docs", "definitions", "Times_Sitelew_Roman_4x3_pixels.csv")
+        elif args.size == "5x5":
+            args.font_csv = os.path.join(base_dir, "docs", "definitions", "Times_Sitelew_Roman_5x5_pixels.csv")
         else:
-            args.font_csv = os.path.join(base_dir, "definitions", "Times_Sitelew_Roman_5x4_pixels.csv")
+            args.font_csv = os.path.join(base_dir, "docs", "definitions", "Times_Sitelew_Roman_5x4_pixels.csv")
 
     if args.extreme:
         args.compact = True
@@ -301,7 +303,11 @@ def main():
         # Collapse multiple adjacent unknown characters into a single one
         text = re.sub(r'\uFFFD+', '\uFFFD', text)
 
-    if args.size == "5x4":
+    if args.size == "5x5":
+        max_rows = 5
+        max_cols = 5
+        space_width = 3
+    elif args.size == "5x4":
         max_rows = 5
         max_cols = 4
         # Since get_char_width already appends a 1-pixel gap after each letter,

@@ -2,7 +2,7 @@ import csv
 
 import os
 
-csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'definitions', 'Times_Sitelew_Roman_4x3_pixels.csv')
+csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'docs', 'definitions', 'Times_Sitelew_Roman_5x5_pixels.csv')
 with open(csv_path, 'r') as f:
     reader = csv.reader(f)
     lines = list(reader)
@@ -31,8 +31,8 @@ if curr_char is not None:
     chars[curr_char] = curr_grid
 
 for c, grid in chars.items():
-    if len(grid) > 4:
-        for r in grid[4:]:
+    if len(grid) > 5:
+        for r in grid[5:]:
             for cell in r:
                 if "#" in cell:
                     print(f"Char {c} uses row > 4: {r}")

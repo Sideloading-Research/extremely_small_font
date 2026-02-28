@@ -67,8 +67,17 @@ def draw_glyph(pen, grid, max_rows, max_cols):
 def build_font(mode):
     import os
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if mode == "5x4":
-        csv_path = os.path.join(base_dir, 'definitions', 'Times_Sitelew_Roman_5x4_pixels.csv')
+    if mode == "5x5":
+        csv_path = os.path.join(base_dir, 'docs', 'definitions', 'Times_Sitelew_Roman_5x5_pixels.csv')
+        max_rows = 5
+        max_cols = 5
+        upm = 1536
+        advance_width = 1536
+        char_width = 1280
+        font_name = "Times Sitelew Roman 5x5 pixels"
+        out_file = os.path.join(base_dir, 'ttf_fonts', 'Times_Sitelew_Roman_5x5_pixels.ttf')
+    elif mode == "5x4":
+        csv_path = os.path.join(base_dir, 'docs', 'definitions', 'Times_Sitelew_Roman_5x4_pixels.csv')
         max_rows = 5
         max_cols = 4
         # 4 cols * 256 = 1024 width + 1 col space -> 1280
@@ -79,7 +88,7 @@ def build_font(mode):
         font_name = "Times Sitelew Roman 5x4 pixels"
         out_file = os.path.join(base_dir, 'ttf_fonts', 'Times_Sitelew_Roman_5x4_pixels.ttf')
     else:
-        csv_path = os.path.join(base_dir, 'definitions', 'Times_Sitelew_Roman_4x3_pixels.csv')
+        csv_path = os.path.join(base_dir, 'docs', 'definitions', 'Times_Sitelew_Roman_4x3_pixels.csv')
         max_rows = 4
         max_cols = 3
         # 3 cols * 256 = 768 width + 1 col space -> 1024
@@ -176,7 +185,7 @@ def build_font(mode):
 
 def main():
     parser = argparse.ArgumentParser(description="Build Sitelew font from CSV.")
-    parser.add_argument("--size", choices=["4x3", "5x4"], default="4x3", help="Font grid size to build")
+    parser.add_argument("--size", choices=["4x3", "5x4", "5x5"], default="5x5", help="Font grid size to build")
     args = parser.parse_args()
     build_font(args.size)
 
