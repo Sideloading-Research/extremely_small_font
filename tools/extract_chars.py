@@ -21,7 +21,7 @@ def load_font_chars(csv_path):
 
 def main():
     import os
-    font_csv = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "definitions", "Times_Sitelew_Roman_5x4_pixels.csv")
+    font_csv = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "docs", "definitions", "Times_Sitelew_Roman_5x5_pixels.csv")
     import argparse
     parser = argparse.ArgumentParser(description="Extract unique missing characters from a text file.")
     parser.add_argument("text_file", nargs='?', default="War_and_Peace_Tolstoy.txt", help="Input text file")

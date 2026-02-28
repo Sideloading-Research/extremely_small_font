@@ -1,6 +1,6 @@
 # Intro
 
-This repo contains a family of extremely small fonts: 5x4 and 4x3 pixels.
+This repo contains a family of extremely small fonts: 5x5, 5x4 and 4x3 pixels.
 
 Useful for backups of important data on paper, metal, stone, etc.
 
@@ -10,9 +10,25 @@ But we recommend to render the images directly, to achieve the pixel-level quali
 
 # Fonts
 
+## The 5x5 Font
+
+The **5x5** font is the largest in the family, providing better readability for complex characters while remaining extremely compact. It uses a maximum bounding box of 5 pixels high and 5 pixels wide per character. 
+
+We recommend to use this font, unless you have a strong reason to use an even smaller one.
+
+It supports the characters for the following languages (and also all the key punctuation):
+
+- English
+- Spanish
+- Russian
+- German
+
+![5x5 Repertoire](illustrations/5x5/Repertoire.png)
+![5x5 Text Sample](illustrations/5x5/brown_fox.png)
+
 ## The 5x4 Font
 
-The **5x4** font is the primary font in this family. It uses a maximum bounding box of 5 pixels high and 4 pixels wide per character. 
+The **5x4** font uses a maximum bounding box of 5 pixels high and 4 pixels wide per character. 
 
 It supports the characters for the following languages (and also all the key punctuation): 
 

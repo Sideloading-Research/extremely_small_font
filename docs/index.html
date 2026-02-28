@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extremely Small Font Renderer</title>
+    <meta name="description" content="A pixel-precise text rendering tool for extremely small fonts.">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <h1><span class="highlight">Extremely Small</span> Font Renderer</h1>
+            <p>Type your text and render pixel-perfect images instantly. <strong>Privacy-first:</strong> all processing
+                happens in your browser. No data is sent to any server.</p>
+        </header>
+
+        <main class="main-content">
+            <section class="controls-panel">
+                <div class="control-group text-input-group">
+                    <label for="inputText">Input Text</label>
+                    <textarea id="inputText" placeholder="Type your text here..."></textarea>
+
+                    <div class="file-upload-actions">
+                        <input type="file" id="fileInput" accept=".txt" style="display: none;">
+                        <button id="uploadBtn" class="primary-btn secondary-btn"
+                            style="flex: 1; justify-content: center;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            Choose .txt File...
+                        </button>
+                        <button id="processFileBtn" class="primary-btn" style="flex: 1; justify-content: center;"
+                            disabled>
+                            Process & Download
+                        </button>
+                    </div>
+
+                    <div id="progressContainer" class="progress-container" style="display: none; margin-top: 15px;">
+                        <div class="progress-bar-bg">
+                            <div id="progressBar" class="progress-bar"></div>
+                        </div>
+                        <div id="progressText" class="progress-text">Processing: 0%</div>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label for="gridSize">Font Size</label>
+                    <select id="gridSize">
+                        <option value="5x5" selected>5x5 (supports EN, RU, DE, ES)</option>
+                        <option value="5x4">5x4 (supports EN, RU, DE, ES)</option>
+                        <option value="4x3">4x3 (only EN)</option>
+                    </select>
+                </div>
+
+                <div class="control-group options-grid">
+                    <div class="option-item">
+                        <label for="scale">Pixel Scale</label>
+                        <input type="number" id="scale" min="1" max="10" value="2">
+                    </div>
+                    <div class="option-item">
+                        <label for="marginMm">Margin (mm)</label>
+                        <input type="number" id="marginMm" min="0" max="50" value="10">
+                    </div>
+                    <div class="option-item">
+                        <label for="dpi">DPI</label>
+                        <input type="number" id="dpi" min="72" max="600" value="300" step="10">
+                    </div>
+                    <div class="option-item">
+                        <label for="lineGap">Line Gap (px)</label>
+                        <input type="number" id="lineGap" min="0" max="10" value="1">
+                    </div>
+                </div>
+
+                <div class="control-group checkbox-group">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="compactMode">
+                        <span class="slider"></span>
+                        <span class="label-text">Compact Mode</span>
+                    </label>
+
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="extremeMode">
+                        <span class="slider"></span>
+                        <span class="label-text">Extreme Mode</span>
+                    </label>
+
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="includeLegend" checked>
+                        <span class="slider"></span>
+                        <span class="label-text">Include Legend</span>
+                    </label>
+                </div>
+            </section>
+
+            <section class="preview-panel">
+                <div class="preview-header">
+                    <h2>Live Preview</h2>
+                    <div class="preview-actions">
+                        <button id="downloadBtn" class="primary-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Download PNG
+                        </button>
+                    </div>
+                </div>
+
+                <div class="canvas-container" id="canvasContainer">
+                    <div class="loading-overlay" id="loadingOverlay">
+                        <div class="spinner"></div>
+                        <span>Rendering...</span>
+                    </div>
+                    <!-- Canvases will be injected here -->
+                </div>
+                <div id="pagesIndicator" class="pages-indicator">Page 1 of 1</div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Hidden element to fetch character_legend.txt text -->
+    <script src="script.js"></script>
+</body>
+
+</html>
