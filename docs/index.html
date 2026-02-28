@@ -27,6 +27,7 @@
                     <div class="file-upload-actions">
                         <input type="file" id="fileInput" accept=".txt" style="display: none;">
                         <button id="uploadBtn" class="primary-btn secondary-btn"
+                            title="Upload a .txt file for batch processing. The rendered output will be automatically downloaded as PNG."
                             style="flex: 1; justify-content: center;">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -37,7 +38,9 @@
                             </svg>
                             Choose .txt File...
                         </button>
-                        <button id="processFileBtn" class="primary-btn" style="flex: 1; justify-content: center;"
+                        <button id="processFileBtn" class="primary-btn"
+                            title="Render the uploaded file and download the result as PNG pages."
+                            style="flex: 1; justify-content: center;"
                             disabled>
                             Process & Download
                         </button>
@@ -53,7 +56,8 @@
 
                 <div class="control-group">
                     <label for="gridSize">Font Size</label>
-                    <select id="gridSize">
+                    <select id="gridSize"
+                        title="Pixel grid dimensions for each character. Smaller grids produce denser text but support fewer languages.">
                         <option value="5x5" selected>5x5 (supports EN, RU, DE, ES)</option>
                         <option value="5x4">5x4 (supports EN, RU, DE, ES)</option>
                         <option value="4x3">4x3 (only EN)</option>
@@ -61,38 +65,52 @@
                 </div>
 
                 <div class="control-group options-grid">
-                    <div class="option-item">
+                    <div class="option-item"
+                        title="Multiplier for each font pixel. Scale 1 = one screen pixel per font pixel; scale 2 = 2x2 block per font pixel.">
                         <label for="scale">Pixel Scale</label>
                         <input type="number" id="scale" min="1" max="10" value="2">
                     </div>
-                    <div class="option-item">
+                    <div class="option-item"
+                        title="Page margin in millimeters, applied to all four sides of the A4 output.">
                         <label for="marginMm">Margin (mm)</label>
                         <input type="number" id="marginMm" min="0" max="50" value="10">
                     </div>
-                    <div class="option-item">
+                    <div class="option-item"
+                        title="Dots per inch. Higher values produce larger images with more text per page. 300 is standard for printing.">
                         <label for="dpi">DPI</label>
-                        <input type="number" id="dpi" min="72" max="600" value="300" step="10">
+                        <input type="number" id="dpi" min="70" max="600" value="300" step="10">
                     </div>
-                    <div class="option-item">
+                    <div class="option-item"
+                        title="Vertical gap between text lines in font pixels. 0 means lines touch; higher values add more spacing.">
                         <label for="lineGap">Line Gap (px)</label>
                         <input type="number" id="lineGap" min="0" max="10" value="1">
                     </div>
                 </div>
 
                 <div class="control-group checkbox-group">
-                    <label class="toggle-switch">
+                    <label class="toggle-switch"
+                        title="Collapse all newlines and consecutive spaces into single spaces. Maximizes text density on the page.">
                         <input type="checkbox" id="compactMode">
                         <span class="slider"></span>
                         <span class="label-text">Compact Mode</span>
                     </label>
 
-                    <label class="toggle-switch">
+                    <label class="toggle-switch"
+                        title="Maximum density: enables compact mode, converts all text to lowercase, replaces digits with subscript equivalents, and sets line gap to 0.">
                         <input type="checkbox" id="extremeMode">
                         <span class="slider"></span>
                         <span class="label-text">Extreme Mode</span>
                     </label>
 
-                    <label class="toggle-switch">
+                    <label class="toggle-switch"
+                        title="Convert unsupported characters to Latin equivalents. Russian uses a reversible transliteration system; all other unsupported scripts are encoded as Unicode hex codes like [\u0436].">
+                        <input type="checkbox" id="transliterate" checked>
+                        <span class="slider"></span>
+                        <span class="label-text">Transliterate</span>
+                    </label>
+
+                    <label class="toggle-switch"
+                        title="Prepend a character legend to the output, listing all supported characters for reference when reading the rendered text.">
                         <input type="checkbox" id="includeLegend" checked>
                         <span class="slider"></span>
                         <span class="label-text">Include Legend</span>
@@ -104,7 +122,8 @@
                 <div class="preview-header">
                     <h2>Live Preview</h2>
                     <div class="preview-actions">
-                        <button id="downloadBtn" class="primary-btn">
+                        <button id="downloadBtn" class="primary-btn"
+                            title="Download the current preview as PNG image(s). Multi-page text produces one file per page.">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                 stroke-linejoin="round">

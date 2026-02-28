@@ -43,6 +43,44 @@ const typographicReplacements = {
     'ỳ': 'y', '\u2009': ' ', '\u202f': ' '
 };
 
+const _russianTranslitLower = {
+    "а": "a", "б": "b", "в": "v", "г": "g", "д": "d",
+    "е": "je", "ё": "jo", "ж": "zh", "з": "z", "и": "i",
+    "й": "ji", "к": "k", "л": "l", "м": "m", "н": "n",
+    "о": "o", "п": "p", "р": "r", "с": "s", "т": "t",
+    "у": "u", "ф": "f", "х": "kh", "ц": "c", "ч": "ch",
+    "ш": "sh", "щ": "xh", "ъ": "qh", "ы": "yh", "ь": "jh",
+    "э": "e", "ю": "uh", "я": "ja",
+};
+
+const russianTransliteration = { ..._russianTranslitLower };
+for (const [k, v] of Object.entries(_russianTranslitLower)) {
+    russianTransliteration[k.toUpperCase()] = v.charAt(0).toUpperCase() + v.slice(1);
+}
+
+function encodeUnknownChar(char) {
+    return `[\\u${char.codePointAt(0).toString(16).padStart(4, '0')}]`;
+}
+
+function encodeUnknownChars(text, knownChars) {
+    let result = "";
+    for (const char of text) {
+        result += knownChars.has(char) ? char : encodeUnknownChar(char);
+    }
+    return result;
+}
+
+function isFontSupportsRussian(chars) {
+    return "а" in chars;
+}
+
+function transliterateRussian(text) {
+    for (const [k, v] of Object.entries(russianTransliteration)) {
+        text = text.split(k).join(v);
+    }
+    return text;
+}
+
 const subscriptMap = {
     '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄',
     '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉'
@@ -59,6 +97,7 @@ const els = {
     compactMode: document.getElementById('compactMode'),
     extremeMode: document.getElementById('extremeMode'),
     includeLegend: document.getElementById('includeLegend'),
+    transliterate: document.getElementById('transliterate'),
     downloadBtn: document.getElementById('downloadBtn'),
     fileInput: document.getElementById('fileInput'),
     uploadBtn: document.getElementById('uploadBtn'),
@@ -201,22 +240,26 @@ function normalizeText(text, isExtreme, isCompact, legend) {
         t = `[[CHARACTERS LEGEND: ${legend} CHARACTERS LEGEND END.]]\n\n` + t;
     }
 
-    // Typographic replacements
     for (const [k, v] of Object.entries(typographicReplacements)) {
         t = t.split(k).join(v);
     }
 
     if (isExtreme) {
         t = t.toLowerCase();
-        for (const [k, v] of Object.entries(subscriptMap)) {
-            t = t.split(k).join(v);
-        }
     }
 
     if (isCompact || isExtreme) {
         t = t.replace(/\s+/g, ' ');
     }
 
+    return t;
+}
+
+function applySubscriptDigits(text) {
+    let t = text;
+    for (const [k, v] of Object.entries(subscriptMap)) {
+        t = t.split(k).join(v);
+    }
     return t;
 }
 
@@ -272,13 +315,14 @@ async function renderText(customText = null, showProgress = false) {
 
     let text = normalizeText(rawText, isExtreme, isCompact, legend);
 
-    // Handle unknown chars
-    let cleanText = "";
-    for (const char of text) {
-        cleanText += knownChars.has(char) ? char : '\uFFFD';
+    if (els.transliterate.checked && !isFontSupportsRussian(chars)) {
+        text = transliterateRussian(text);
     }
-    if (isCompact) {
-        cleanText = cleanText.replace(/\uFFFD+/g, '\uFFFD');
+
+    let cleanText = encodeUnknownChars(text, knownChars);
+
+    if (isExtreme) {
+        cleanText = applySubscriptDigits(cleanText);
     }
 
     const widthPx = Math.floor((210 / 25.4) * dpi);
@@ -496,7 +540,7 @@ els.processFileBtn.addEventListener('click', async () => {
 });
 
 // Event Listeners
-const triggers = ['input', 'gridSize', 'scale', 'marginMm', 'dpi', 'lineGap', 'compactMode', 'extremeMode', 'includeLegend'];
+const triggers = ['input', 'gridSize', 'scale', 'marginMm', 'dpi', 'lineGap', 'compactMode', 'extremeMode', 'includeLegend', 'transliterate'];
 triggers.forEach(id => {
     els[id].addEventListener(id === 'input' ? 'input' : 'change', startRender);
 });

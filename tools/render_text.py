@@ -3,6 +3,45 @@ import csv
 from PIL import Image, ImageDraw
 import sys
 
+_RUSSIAN_TRANSLITERATION_LOWER = {
+    "а": "a", "б": "b", "в": "v", "г": "g", "д": "d",
+    "е": "je", "ё": "jo", "ж": "zh", "з": "z", "и": "i",
+    "й": "ji", "к": "k", "л": "l", "м": "m", "н": "n",
+    "о": "o", "п": "p", "р": "r", "с": "s", "т": "t",
+    "у": "u", "ф": "f", "х": "kh", "ц": "c", "ч": "ch",
+    "ш": "sh", "щ": "xh", "ъ": "qh", "ы": "yh", "ь": "jh",
+    "э": "e", "ю": "uh", "я": "ja",
+}
+
+RUSSIAN_TRANSLITERATION = {
+    **_RUSSIAN_TRANSLITERATION_LOWER,
+    **{k.upper(): v.capitalize() for k, v in _RUSSIAN_TRANSLITERATION_LOWER.items()},
+}
+
+
+def is_font_supports_russian(chars):
+    return "а" in chars
+
+
+def transliterate_russian(text):
+    for k, v in RUSSIAN_TRANSLITERATION.items():
+        text = text.replace(k, v)
+    return text
+
+
+def encode_unknown_char(char):
+    return f"[\\u{ord(char):04x}]"
+
+
+def encode_unknown_chars(text, known_chars):
+    result = []
+    for c in text:
+        if c in known_chars:
+            result.append(c)
+        else:
+            result.append(encode_unknown_char(c))
+    return "".join(result)
+
 def parse_csv(csv_path):
     try:
         with open(csv_path, 'r', encoding='utf-8') as f:
@@ -80,6 +119,8 @@ def main():
     parser.add_argument("--extreme", action="store_true", help="Extreme mode: assumes compact, converts to lowercase, converts digits to subscripts, and sets line-gap to 1 (between letters, basically overlapping lines for max density)")
     parser.add_argument("--include_legend", default=True, type=lambda x: (str(x).lower() in ['true', '1', 'yes']), help="Include legend text character_legend.txt at the start of output (default: True)")
     parser.add_argument("--no-legend", action="store_false", dest="include_legend", help="Disable the inclusion of character_legend.txt at the start of output")
+    parser.add_argument("--transliterate", default=True, type=lambda x: (str(x).lower() in ['true', '1', 'yes']), help="Convert unsupported characters to Latin equivalents. Russian uses a reversible transliteration; other scripts are encoded as hex codes like [\\u0436] (default: True)")
+    parser.add_argument("--no-transliterate", action="store_false", dest="transliterate", help="Disable transliteration of unsupported characters")
     args = parser.parse_args()
 
     if args.font_csv is None:
@@ -285,23 +326,22 @@ def main():
 
     if args.extreme:
         text = text.lower()
+
+    chars = parse_csv(args.font_csv)
+
+    if args.transliterate and not is_font_supports_russian(chars):
+        text = transliterate_russian(text)
+
+    known_chars = set(chars.keys()) | {' ', '\n'}
+    text = encode_unknown_chars(text, known_chars)
+
+    if args.extreme:
         subscript_map = {
             '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄',
             '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉'
         }
         for k, v in subscript_map.items():
             text = text.replace(k, v)
-
-    chars = parse_csv(args.font_csv)
-
-    # Convert any remaining unknown characters to a replacement character 
-    known_chars = set(chars.keys()) | {' ', '\n'}
-    text = "".join(c if c in known_chars else '\uFFFD' for c in text)
-    
-    if args.compact:
-        import re
-        # Collapse multiple adjacent unknown characters into a single one
-        text = re.sub(r'\uFFFD+', '\uFFFD', text)
 
     if args.size == "5x5":
         max_rows = 5
