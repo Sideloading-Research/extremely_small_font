@@ -89,7 +89,7 @@ header p {
 }
 
 .text-input-group {
-    flex: 1;
+    flex: 1 0 auto;
     min-height: 200px;
     display: flex;
     flex-direction: column;
@@ -150,7 +150,7 @@ header p {
 
 textarea {
     width: 100%;
-    height: 100%;
+    flex: 1;
     min-height: 150px;
     background-color: var(--bg-color);
     border: 1px solid var(--border-color);
@@ -260,6 +260,28 @@ input:checked+.slider:before {
     font-weight: 500;
 }
 
+.header-text-group {
+    margin-left: 56px;
+}
+
+.header-text-group input[type="text"] {
+    width: 100%;
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.header-text-group input[type="text"]:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.2);
+}
+
 /* Preview Panel */
 .preview-panel {
     flex: 1;
@@ -285,6 +307,12 @@ input:checked+.slider:before {
 .preview-header h2 {
     font-size: 1.1rem;
     font-weight: 600;
+}
+
+#previewHeaderStatus {
+    flex: 1;
+    display: flex;
+    align-items: center;
 }
 
 .primary-btn {
