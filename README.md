@@ -8,6 +8,17 @@ If you want to use the fonts in your text editor, you can find the TTF files in 
 
 But we recommend to render the images directly, to achieve the pixel-level quality. For this, you can use render_text.py in the tools dir, or our free [web tool](https://sideloading-research.github.io/extremely_small_font/).
 
+## Running the Web Tool Locally
+
+To try the web tool on your machine, start a local server from the `docs` directory:
+
+```bash
+cd docs
+python -m http.server 8765
+```
+
+Then open http://localhost:8765 in your browser.
+
 # Fonts
 
 ## The 5x5 Font

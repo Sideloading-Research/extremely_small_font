@@ -1,3 +1,13 @@
+// Note: you may need to change these in other places too
+const CONFIG = {
+    HEADER_SCALE_MULTIPLIER: 4,
+    DEFAULT_HEADER_TEXT: "IMPORTANT! PRESERVE THIS DOCUMENT.",
+    DEFAULT_MARGIN_MM: 10,
+    DEFAULT_DPI: 300,
+    DEFAULT_SCALE: 2,
+    DEBOUNCE_MS: 300
+};
+
 // Typographic replacements to normalize input before rendering
 const typographicReplacements = {
     '—': '-',    // Em dash
@@ -98,6 +108,12 @@ const els = {
     extremeMode: document.getElementById('extremeMode'),
     includeLegend: document.getElementById('includeLegend'),
     transliterate: document.getElementById('transliterate'),
+    addBorders: document.getElementById('addBorders'),
+    includePageNumbers: document.getElementById('includePageNumbers'),
+    saveAsPdf: document.getElementById('saveAsPdf'),
+    includeHeader: document.getElementById('includeHeader'),
+    headerText: document.getElementById('headerText'),
+    headerTextGroup: document.getElementById('headerTextGroup'),
     downloadBtn: document.getElementById('downloadBtn'),
     fileInput: document.getElementById('fileInput'),
     uploadBtn: document.getElementById('uploadBtn'),
@@ -105,9 +121,11 @@ const els = {
     container: document.getElementById('canvasContainer'),
     loading: document.getElementById('loadingOverlay'),
     pagesIndicator: document.getElementById('pagesIndicator'),
-    progressContainer: document.getElementById('progressContainer'),
-    progressBar: document.getElementById('progressBar'),
-    progressText: document.getElementById('progressText')
+    previewHeaderStatus: document.getElementById('previewHeaderStatus'),
+    previewTitle: document.getElementById('previewTitle'),
+    previewProgress: document.getElementById('previewProgress'),
+    previewProgressBar: document.getElementById('previewProgressBar'),
+    previewProgressText: document.getElementById('previewProgressText')
 };
 
 // State
@@ -267,24 +285,106 @@ function applySubscriptDigits(text) {
 
 async function startRender() {
     clearTimeout(renderTimeout);
-    els.loading.classList.add('active');
-
-    // Hide progress during live typing for cleaner UI
-    els.progressContainer.style.display = 'none';
+     els.loading.classList.add('active');
 
     // Use debounce to prevent freezing the UI while typing
     renderTimeout = setTimeout(async () => {
         await renderText();
         els.loading.classList.remove('active');
-    }, 300);
+    }, CONFIG.DEBOUNCE_MS);
 }
 
 // Function to yield control to the UI thread
 const yieldToMain = () => new Promise(resolve => requestAnimationFrame(resolve));
 
+function splitLineIntoWords(line, isCompact) {
+    const words = [];
+    let currentWord = "";
+    for (const c of line) {
+        if (c === ' ') {
+            if (currentWord) {
+                words.push(currentWord);
+                currentWord = "";
+            }
+            if (isCompact) {
+                if (words.length === 0 || words[words.length - 1] !== " ") {
+                    words.push(" ");
+                }
+            } else {
+                words.push(" ");
+            }
+        } else {
+            currentWord += c;
+        }
+    }
+    if (currentWord) words.push(currentWord);
+    return words;
+}
+
+function prepareHeaderText(rawHeader, isExtreme, chars, knownChars) {
+    let text = normalizeText(rawHeader, isExtreme, false, "");
+    if (els.transliterate.checked) {
+        if (!isFontSupportsRussian(chars)) {
+            text = transliterateRussian(text);
+        }
+        text = encodeUnknownChars(text, knownChars);
+    }
+    if (isExtreme) {
+        text = applySubscriptDigits(text);
+    }
+    return text;
+}
+
+const BORDER_MM = {
+    OUTER_OFFSET: 2,
+    OUTER_THICKNESS: 0.3,
+    MIDDLE_OFFSET: 4,
+    MIDDLE_THICKNESS: 0.8,
+    INNER_OFFSET: 6,
+    INNER_THICKNESS: 0.3,
+    MIN_MARGIN: 7
+};
+
+function mmToPx(mm, dpi) {
+    return Math.round((mm / 25.4) * dpi);
+}
+
+function strokeBorderRect(ctx, offset, thickness, widthPx, heightPx) {
+    ctx.lineWidth = thickness;
+    ctx.strokeRect(
+        offset + thickness / 2,
+        offset + thickness / 2,
+        widthPx - 2 * offset - thickness,
+        heightPx - 2 * offset - thickness
+    );
+}
+
+function drawPageBorders(ctx, widthPx, heightPx, dpi) {
+    ctx.save();
+    ctx.strokeStyle = "black";
+
+    strokeBorderRect(ctx, mmToPx(BORDER_MM.OUTER_OFFSET, dpi), mmToPx(BORDER_MM.OUTER_THICKNESS, dpi), widthPx, heightPx);
+    strokeBorderRect(ctx, mmToPx(BORDER_MM.MIDDLE_OFFSET, dpi), mmToPx(BORDER_MM.MIDDLE_THICKNESS, dpi), widthPx, heightPx);
+    strokeBorderRect(ctx, mmToPx(BORDER_MM.INNER_OFFSET, dpi), mmToPx(BORDER_MM.INNER_THICKNESS, dpi), widthPx, heightPx);
+
+    ctx.restore();
+}
+
+function drawBordersOnAllPages(dpi, marginMm) {
+    if (!els.addBorders.checked) return;
+    if (marginMm < BORDER_MM.MIN_MARGIN) return;
+    if (currentCanvases.length === 0) return;
+
+    const widthPx = currentCanvases[0].width;
+    const heightPx = currentCanvases[0].height;
+    for (const canvas of currentCanvases) {
+        drawPageBorders(canvas.getContext('2d'), widthPx, heightPx, dpi);
+    }
+}
+
 async function renderText(customText = null, showProgress = false) {
     const rawText = customText !== null ? customText : els.input.value;
-    if (!rawText.trim() && !els.includeLegend.checked) {
+    if (!rawText.trim() && !els.includeLegend.checked && !els.includeHeader.checked) {
         els.container.innerHTML = '';
         currentCanvases = [];
         return;
@@ -294,9 +394,9 @@ async function renderText(customText = null, showProgress = false) {
     const isExtreme = els.extremeMode.checked;
     const isCompact = els.compactMode.checked || isExtreme;
     const wantsLegend = els.includeLegend.checked;
-    const scale = parseInt(els.scale.value) || 2;
-    const dpi = parseInt(els.dpi.value) || 300;
-    const marginMm = parseInt(els.marginMm.value) || 10;
+    const scale = parseInt(els.scale.value) || CONFIG.DEFAULT_SCALE;
+    const dpi = parseInt(els.dpi.value) || CONFIG.DEFAULT_DPI;
+    const marginMm = parseInt(els.marginMm.value) || CONFIG.DEFAULT_MARGIN_MM;
     let lineGap = parseInt(els.lineGap.value) || 0;
 
     if (isExtreme) {
@@ -358,7 +458,7 @@ async function renderText(customText = null, showProgress = false) {
     let y = marginPx;
     const lineHeight = maxRows;
 
-    const getWordWidth = (word) => {
+    const getWordWidthAt = (word, blockScale) => {
         let w = 0;
         for (const c of word) {
             if (c === ' ') {
@@ -368,10 +468,10 @@ async function renderText(customText = null, showProgress = false) {
             const grid = chars[c] || chars['.notdef'] || [];
             w += getCharWidth(grid, maxCols);
         }
-        return w * scale;
+        return w * blockScale;
     };
 
-    const drawChar = (grid, cx, cy) => {
+    const drawCharAt = (grid, cx, cy, blockScale) => {
         if (!grid) return;
         ctx.fillStyle = "black";
         for (let rIdx = 0; rIdx < grid.length; rIdx++) {
@@ -380,119 +480,180 @@ async function renderText(customText = null, showProgress = false) {
             for (let cIdx = 0; cIdx < row.length; cIdx++) {
                 if (cIdx >= maxCols) break;
                 if (row[cIdx].includes("#")) {
-                    const px = cx + cIdx * scale;
-                    const py = cy + rIdx * scale;
-                    ctx.fillRect(px, py, scale, scale);
+                    const px = cx + cIdx * blockScale;
+                    const py = cy + rIdx * blockScale;
+                    ctx.fillRect(px, py, blockScale, blockScale);
                 }
             }
         }
     };
 
-    let lines = isCompact ? [cleanText] : cleanText.split('\n');
     let totalPages = 1;
-
-    // Progress calculation for file processing
     let charCount = 0;
-    const totalChars = cleanText.length;
     let lastYieldTime = Date.now();
 
-    for (const line of lines) {
-        let words = [];
-        let currentWord = "";
+    const renderBlock = async (blockText, blockScale, blockCompact, blockLineGap) => {
+        const blockLines = blockCompact ? [blockText] : blockText.split('\n');
 
-        for (const c of line) {
-            if (c === ' ') {
-                if (currentWord) {
-                    words.push(currentWord);
-                    currentWord = "";
-                }
-                if (isCompact) {
-                    if (words.length === 0 || words[words.length - 1] !== " ") {
-                        words.push(" ");
-                    }
-                } else {
-                    words.push(" ");
-                }
-            } else {
-                currentWord += c;
-            }
-        }
-        if (currentWord) words.push(currentWord);
+        for (const line of blockLines) {
+            const words = splitLineIntoWords(line, blockCompact);
 
-        for (const word of words) {
-            const wordWidth = getWordWidth(word);
-            if (word === " " && x === marginPx) {
-                charCount += word.length;
-                continue;
-            }
-
-            if (x + wordWidth > widthPx - marginPx) {
-                if (word === " ") {
+            for (const word of words) {
+                const wordWidth = getWordWidthAt(word, blockScale);
+                if (word === " " && x === marginPx) {
                     charCount += word.length;
                     continue;
                 }
-                // Wrap
-                x = marginPx;
-                y += (lineHeight + lineGap) * scale;
-                if (y > heightPx - marginPx) {
-                    createNewCanvas();
-                    totalPages++;
+
+                if (x + wordWidth > widthPx - marginPx) {
+                    if (word === " ") {
+                        charCount += word.length;
+                        continue;
+                    }
                     x = marginPx;
-                    y = marginPx;
+                    y += (lineHeight + blockLineGap) * blockScale;
+                    if (y > heightPx - marginPx) {
+                        createNewCanvas();
+                        totalPages++;
+                        x = marginPx;
+                        y = marginPx;
+                    }
+                }
+
+                if (word === " ") {
+                    x += spaceWidth * blockScale;
+                } else {
+                    for (const c of word) {
+                        const grid = chars[c] || chars['.notdef'] || [];
+                        const cw = getCharWidth(grid, maxCols);
+                        const charPxWidth = cw * blockScale;
+                        if (x + charPxWidth > widthPx - marginPx && x > marginPx) {
+                            x = marginPx;
+                            y += (lineHeight + blockLineGap) * blockScale;
+                            if (y > heightPx - marginPx) {
+                                createNewCanvas();
+                                totalPages++;
+                                x = marginPx;
+                                y = marginPx;
+                            }
+                        }
+                        drawCharAt(grid, x, y, blockScale);
+                        x += charPxWidth;
+                    }
+                }
+
+                charCount += word.length;
+
+                if (showProgress && Date.now() - lastYieldTime > 50) {
+                    const percent = Math.round((charCount / totalChars) * 100);
+                    updatePreviewProgress(percent, `Processing: ${percent}% (Page ${totalPages})`);
+                    await yieldToMain();
+                    lastYieldTime = Date.now();
                 }
             }
 
-            if (word === " ") {
-                x += spaceWidth * scale;
-            } else {
-                for (const c of word) {
-                    const grid = chars[c] || chars['.notdef'] || [];
-                    const cw = getCharWidth(grid, maxCols);
-                    drawChar(grid, x, y);
-                    x += cw * scale;
-                }
-            }
-
-            charCount += word.length;
-
-            // Yield to UI thread and update progress if processing a file
-            if (showProgress && Date.now() - lastYieldTime > 50) {
-                const percent = Math.round((charCount / totalChars) * 100);
-                els.progressBar.style.width = `${percent}%`;
-                els.progressText.textContent = `Processing: ${percent}% (Page ${totalPages})`;
-                await yieldToMain();
-                lastYieldTime = Date.now();
-            }
-        }
-
-        // Explicit newline mapping
-        x = marginPx;
-        y += (lineHeight + lineGap) * scale;
-        if (y > heightPx - marginPx) {
-            createNewCanvas();
-            totalPages++;
             x = marginPx;
-            y = marginPx;
-        }
+            y += (lineHeight + blockLineGap) * blockScale;
+            if (y > heightPx - marginPx) {
+                createNewCanvas();
+                totalPages++;
+                x = marginPx;
+                y = marginPx;
+            }
 
-        // Add character for newline in progress calculation
-        if (!isCompact) charCount++;
+            if (!blockCompact) charCount++;
+        }
+    };
+
+    let headerCleanText = "";
+    if (els.includeHeader.checked) {
+        headerCleanText = prepareHeaderText(els.headerText.value, isExtreme, chars, knownChars);
+    }
+
+    const totalChars = cleanText.length + headerCleanText.length;
+
+    if (headerCleanText) {
+        await renderBlock(headerCleanText, scale * CONFIG.HEADER_SCALE_MULTIPLIER, false, lineGap);
+    }
+
+    await renderBlock(cleanText, scale, isCompact, lineGap);
+
+    drawBordersOnAllPages(dpi, marginMm);
+
+    // Render Page Numbers
+    if (els.includePageNumbers.checked) {
+        const pnScale = scale * CONFIG.HEADER_SCALE_MULTIPLIER;
+        const padding = Math.max(2, Math.floor(pnScale / 2));
+        
+        // Align to the outer border (2mm from edge)
+        const outerBorderOffset = mmToPx(2, dpi);
+        
+        for (let i = 0; i < currentCanvases.length; i++) {
+            const canvas = currentCanvases[i];
+            const ctx = canvas.getContext('2d');
+            const pageNumText = `${i + 1}/${totalPages}`;
+            
+            // Calculate text width
+            let textWidth = 0;
+            for (const c of pageNumText) {
+                if (c === ' ') {
+                    textWidth += spaceWidth * pnScale;
+                } else {
+                    const grid = chars[c] || chars['.notdef'] || [];
+                    textWidth += getCharWidth(grid, maxCols) * pnScale;
+                }
+            }
+            
+            const textHeight = maxRows * pnScale;
+            const boxWidth = textWidth + padding * 2;
+            const boxHeight = textHeight + padding * 2;
+            
+            // Position: bottom right, aligned to outer border
+            const bx = widthPx - outerBorderOffset - boxWidth;
+            const by = heightPx - outerBorderOffset - boxHeight;
+            
+            // Draw Box
+            ctx.fillStyle = "white";
+            ctx.fillRect(bx, by, boxWidth, boxHeight);
+            ctx.lineWidth = Math.max(1, Math.floor(pnScale / 8));
+            ctx.strokeStyle = "black";
+            ctx.strokeRect(bx, by, boxWidth, boxHeight);
+            
+            // Draw Text
+            let cx = bx + padding;
+            const cy = by + padding;
+            
+            ctx.fillStyle = "black";
+            for (const c of pageNumText) {
+                if (c === ' ') {
+                    cx += spaceWidth * pnScale;
+                } else {
+                    const grid = chars[c] || chars['.notdef'] || [];
+                    // Draw char grid
+                    for (let rIdx = 0; rIdx < grid.length; rIdx++) {
+                        if (rIdx >= maxRows) break;
+                        const row = grid[rIdx];
+                        for (let cIdx = 0; cIdx < row.length; cIdx++) {
+                            if (cIdx >= maxCols) break;
+                            if (row[cIdx].includes("#")) {
+                                ctx.fillRect(cx + cIdx * pnScale, cy + rIdx * pnScale, pnScale, pnScale);
+                            }
+                        }
+                    }
+                    cx += getCharWidth(grid, maxCols) * pnScale;
+                }
+            }
+        }
     }
 
     if (showProgress) {
-        els.progressBar.style.width = '100%';
-        els.progressText.textContent = `Processing Complete! (Total Pages: ${totalPages})`;
+        updatePreviewProgress(100, `Processing Complete! (Total Pages: ${totalPages})`);
     }
 
     els.pagesIndicator.textContent = `Page 1 of ${totalPages}`;
 }
 
-function handleDownload(baseName = "rendered_text") {
-    if (currentCanvases.length === 0) {
-        alert("Nothing to download.");
-        return;
-    }
-
+function handleDownloadPng(baseName) {
     currentCanvases.forEach((canvas, index) => {
         const url = canvas.toDataURL("image/png");
         const a = document.createElement('a');
@@ -505,6 +666,111 @@ function handleDownload(baseName = "rendered_text") {
     });
 }
 
+function updatePreviewProgress(percent, text) {
+    if (percent === null) {
+        if (els.saveAsPdf.checked) {
+            els.previewTitle.textContent = "⚠️ PDF option enabled. Can be very slow";
+            els.previewTitle.style.color = "var(--accent-color)";
+        } else {
+            els.previewTitle.textContent = "Live Preview";
+            els.previewTitle.style.color = "";
+        }
+        els.previewTitle.style.display = 'block';
+        els.previewProgress.style.display = 'none';
+    } else {
+        els.previewTitle.style.display = 'none';
+        els.previewProgress.style.display = 'block';
+        els.previewProgressBar.style.width = `${percent}%`;
+        els.previewProgressText.textContent = text;
+    }
+}
+
+// Utility to wrap canvas.toBlob in a Promise
+function canvasToBlobAsync(canvas, type, quality) {
+    return new Promise(resolve => {
+        canvas.toBlob(resolve, type, quality);
+    });
+}
+
+async function handleDownloadPdf(baseName) {
+    if (!window.PDFLib) {
+        throw new Error("pdf-lib library is not loaded. Please check your internet connection and try again.");
+    }
+    const { PDFDocument } = window.PDFLib;
+    const doc = await PDFDocument.create();
+    const total = currentCanvases.length;
+
+    updatePreviewProgress(0, `Generating PDF: preparing ${total} pages...`);
+    await yieldToMain();
+
+    for (let i = 0; i < total; i++) {
+        updatePreviewProgress(Math.round((i / total) * 100), `Generating PDF: encoding page ${i + 1} of ${total}...`);
+        await yieldToMain();
+        
+        // Since it's a black and white pixel font, PNG is flawlessly lossless and compresses incredibly well.
+        // We async-extract it as a blob so we don't freeze the main thread.
+        const blob = await canvasToBlobAsync(currentCanvases[i], 'image/png');
+        const arrayBuffer = await blob.arrayBuffer();
+
+        updatePreviewProgress(Math.round(((i + 0.5) / total) * 100), `Generating PDF: embedding page ${i + 1} of ${total}...`);
+        await yieldToMain();
+        
+        // pdf-lib embeds PNG directly without inflating its pixels into memory, 
+        // which completely bypasses the 130MB per-page scaling RAM crash
+        const pngImage = await doc.embedPng(arrayBuffer);
+        
+        // A4 is 210x297 mm, which is 595.28 x 841.89 points
+        const page = doc.addPage([595.28, 841.89]);
+        page.drawImage(pngImage, {
+            x: 0,
+            y: 0,
+            width: 595.28,
+            height: 841.89,
+        });
+
+        updatePreviewProgress(Math.round(((i + 1) / total) * 100), `Generating PDF: page ${i + 1} of ${total} done.`);
+    }
+
+    updatePreviewProgress(100, `Building final PDF (${total} pages)...`);
+    await yieldToMain();
+    
+    // Save to byte array
+    const pdfBytes = await doc.save();
+    
+    updatePreviewProgress(100, `Saving PDF file...`);
+    await yieldToMain();
+
+    // Trigger download
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${baseName}.pdf`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    
+    updatePreviewProgress(100, `PDF saved! (${total} pages)`);
+    setTimeout(() => updatePreviewProgress(null), 3000);
+}
+
+async function handleDownload(baseName = "rendered_text") {
+    if (currentCanvases.length === 0) {
+        alert("Nothing to download.");
+        return;
+    }
+
+    try {
+        if (els.saveAsPdf.checked) {
+            await handleDownloadPdf(baseName);
+        } else {
+            handleDownloadPng(baseName);
+        }
+    } catch (err) {
+        console.error("Download failed:", err);
+        updatePreviewProgress(null);
+        alert(`Error generating download: ${err.message}`);
+    }
+}
+
 // File Processing logic
 els.uploadBtn.addEventListener('click', () => els.fileInput.click());
 
@@ -513,12 +779,15 @@ els.fileInput.addEventListener('change', (e) => {
     if (selectedFile) {
         els.uploadBtn.textContent = selectedFile.name;
         els.processFileBtn.disabled = false;
-        els.progressContainer.style.display = 'none';
-        els.progressBar.style.width = '0%';
+        els.processFileBtn.style.display = 'flex';
+        els.headerText.value = `${CONFIG.DEFAULT_HEADER_TEXT} ${selectedFile.name}`;
     } else {
         els.uploadBtn.textContent = 'Choose .txt File...';
         els.processFileBtn.disabled = true;
+        els.processFileBtn.style.display = 'none';
+        els.headerText.value = CONFIG.DEFAULT_HEADER_TEXT;
     }
+    startRender();
 });
 
 els.processFileBtn.addEventListener('click', async () => {
@@ -527,28 +796,37 @@ els.processFileBtn.addEventListener('click', async () => {
     els.loading.classList.add('active');
     els.processFileBtn.disabled = true;
     els.processFileBtn.textContent = "Processing...";
-    els.progressContainer.style.display = 'block';
+    updatePreviewProgress(0, 'Reading file...');
 
     const reader = new FileReader();
     reader.onload = async (e) => {
         const text = e.target.result;
+        updatePreviewProgress(0, 'Rendering text into pages...');
+        await yieldToMain();
         await renderText(text, true);
 
         const base = selectedFile.name.replace(/\.[^/.]+$/, "");
-        handleDownload(base);
+        await handleDownload(base);
 
         els.loading.classList.remove('active');
         els.processFileBtn.disabled = false;
         els.processFileBtn.textContent = "Process & Download";
+        setTimeout(() => updatePreviewProgress(null), 3000);
     };
     reader.readAsText(selectedFile);
 });
 
 // Event Listeners
-const triggers = ['input', 'gridSize', 'scale', 'marginMm', 'dpi', 'lineGap', 'compactMode', 'extremeMode', 'includeLegend', 'transliterate'];
+const triggers = ['input', 'gridSize', 'scale', 'marginMm', 'dpi', 'lineGap', 'compactMode', 'extremeMode', 'includeLegend', 'transliterate', 'includeHeader', 'addBorders', 'includePageNumbers'];
 triggers.forEach(id => {
     els[id].addEventListener(id === 'input' ? 'input' : 'change', startRender);
 });
+
+els.includeHeader.addEventListener('change', (e) => {
+    els.headerTextGroup.style.display = e.target.checked ? 'block' : 'none';
+});
+
+els.headerText.addEventListener('input', startRender);
 
 els.extremeMode.addEventListener('change', (e) => {
     if (e.target.checked) {
@@ -572,5 +850,8 @@ setTimeout(() => {
         els.lineGap.disabled = true;
     }
 
+    // Set defaults from config (overrides HTML hardcoded values)
+    if (!els.headerText.value) els.headerText.value = CONFIG.DEFAULT_HEADER_TEXT;
+    
     startRender();
 }, 100);
