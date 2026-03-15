@@ -40,18 +40,13 @@
                         </button>
                         <button id="processFileBtn" class="primary-btn"
                             title="Render the uploaded file and download the result as PNG pages."
-                            style="flex: 1; justify-content: center;"
+                            style="flex: 1; justify-content: center; display: none;"
                             disabled>
                             Process & Download
                         </button>
                     </div>
 
-                    <div id="progressContainer" class="progress-container" style="display: none; margin-top: 15px;">
-                        <div class="progress-bar-bg">
-                            <div id="progressBar" class="progress-bar"></div>
-                        </div>
-                        <div id="progressText" class="progress-text">Processing: 0%</div>
-                    </div>
+
                 </div>
 
                 <div class="control-group">
@@ -68,7 +63,7 @@
                     <div class="option-item"
                         title="Multiplier for each font pixel. Scale 1 = one screen pixel per font pixel; scale 2 = 2x2 block per font pixel.">
                         <label for="scale">Pixel Scale</label>
-                        <input type="number" id="scale" min="1" max="10" value="2">
+                        <input type="number" id="scale" min="1" max="10" value="3">
                     </div>
                     <div class="option-item"
                         title="Page margin in millimeters, applied to all four sides of the A4 output.">
@@ -78,12 +73,12 @@
                     <div class="option-item"
                         title="Dots per inch. Higher values produce larger images with more text per page. 300 is standard for printing.">
                         <label for="dpi">DPI</label>
-                        <input type="number" id="dpi" min="70" max="600" value="300" step="10">
+                        <input type="number" id="dpi" min="70" max="600" value="600" step="10">
                     </div>
                     <div class="option-item"
                         title="Vertical gap between text lines in font pixels. 0 means lines touch; higher values add more spacing.">
                         <label for="lineGap">Line Gap (px)</label>
-                        <input type="number" id="lineGap" min="0" max="10" value="1">
+                        <input type="number" id="lineGap" min="0" max="10" value="2">
                     </div>
                 </div>
 
@@ -115,12 +110,51 @@
                         <span class="slider"></span>
                         <span class="label-text">Include Legend</span>
                     </label>
+
+                    <label class="toggle-switch"
+                        title="Draw an elegant decorative border around each page using the margin space, giving an official document appearance.">
+                        <input type="checkbox" id="addBorders" checked>
+                        <span class="slider"></span>
+                        <span class="label-text">Add Borders</span>
+                    </label>
+
+                    <label class="toggle-switch"
+                        title="Show page numbers (e.g. 1/3) in the bottom right corner margin.">
+                        <input type="checkbox" id="includePageNumbers" checked>
+                        <span class="slider"></span>
+                        <span class="label-text">Page Numbers</span>
+                    </label>
+
+                    <label class="toggle-switch"
+                        title="Save the rendered output as a single PDF file instead of individual PNG images. The PDF preserves full image quality and is sized for A4 printing.">
+                        <input type="checkbox" id="saveAsPdf">
+                        <span class="slider"></span>
+                        <span class="label-text">Save as PDF</span>
+                    </label>
+
+                    <label class="toggle-switch"
+                        title="Add a header line at the top of the first page, rendered at 2x the current pixel scale.">
+                        <input type="checkbox" id="includeHeader" checked>
+                        <span class="slider"></span>
+                        <span class="label-text">Include Header</span>
+                    </label>
+                    <div id="headerTextGroup" class="header-text-group">
+                        <input type="text" id="headerText" value="IMPORTANT! PRESERVE THIS DOCUMENT.">
+                    </div>
                 </div>
             </section>
 
             <section class="preview-panel">
                 <div class="preview-header">
-                    <h2>Live Preview</h2>
+                    <div id="previewHeaderStatus">
+                        <h2 id="previewTitle">Live Preview</h2>
+                        <div id="previewProgress" style="display: none; flex: 1;">
+                            <div id="previewProgressText" class="progress-text" style="text-align: left; margin-bottom: 4px;">Processing...</div>
+                            <div class="progress-bar-bg">
+                                <div id="previewProgressBar" class="progress-bar"></div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="preview-actions">
                         <button id="downloadBtn" class="primary-btn"
                             title="Download the current preview as PNG image(s). Multi-page text produces one file per page.">
@@ -131,7 +165,7 @@
                                 <polyline points="7 10 12 15 17 10"></polyline>
                                 <line x1="12" y1="15" x2="12" y2="3"></line>
                             </svg>
-                            Download PNG
+                            <span id="downloadBtnLabel">Download this page</span>
                         </button>
                     </div>
                 </div>
@@ -149,6 +183,7 @@
     </div>
 
     <!-- Hidden element to fetch character_legend.txt text -->
+    <script src="pdf-lib.min.js"></script>
     <script src="script.js"></script>
 </body>
 

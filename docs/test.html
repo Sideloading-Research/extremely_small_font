@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Script.js Tests</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #111;
+            color: #ccc;
+            padding: 20px;
+        }
+
+        .pass {
+            color: #4f4;
+        }
+
+        .fail {
+            color: #f44;
+            font-weight: bold;
+        }
+
+        .summary {
+            font-size: 1.3em;
+            margin-top: 20px;
+            padding: 10px;
+            border-top: 1px solid #444;
+        }
+
+        #testResults div {
+            padding: 2px 0;
+        }
+
+        h1 {
+            color: #58a6ff;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Hidden DOM elements that script.js requires -->
+    <div style="display:none;">
+        <textarea id="inputText"></textarea>
+        <select id="gridSize">
+            <option value="5x5" selected>5x5</option>
+            <option value="5x4">5x4</option>
+            <option value="4x3">4x3</option>
+        </select>
+        <input type="number" id="scale" value="1">
+        <input type="number" id="marginMm" value="0">
+        <input type="number" id="dpi" value="72">
+        <input type="number" id="lineGap" value="0">
+        <input type="checkbox" id="compactMode">
+        <input type="checkbox" id="extremeMode">
+        <input type="checkbox" id="includeLegend">
+        <input type="checkbox" id="transliterate">
+        <input type="checkbox" id="addBorders">
+        <input type="checkbox" id="includePageNumbers">
+        <input type="checkbox" id="saveAsPdf">
+        <input type="checkbox" id="includeHeader" checked>
+        <input type="text" id="headerText" value="IMPORTANT! PRESERVE THIS DOCUMENT.">
+        <div id="headerTextGroup"></div>
+        <button id="downloadBtn"></button>
+        <span id="downloadBtnLabel"></span>
+        <input type="file" id="fileInput">
+        <button id="uploadBtn">Choose .txt File...</button>
+        <button id="processFileBtn"></button>
+        <div id="canvasContainer"></div>
+        <div id="loadingOverlay"></div>
+        <div id="pagesIndicator"></div>
+        <div id="previewHeaderStatus"></div>
+        <h2 id="previewTitle"></h2>
+        <div id="previewProgress" style="display:none;"></div>
+        <div id="previewProgressBar"></div>
+        <div id="previewProgressText"></div>
+    </div>
+
+    <h1>Script.js Tests</h1>
+    <div id="testResults"></div>
+
+    <script src="pdf-lib.min.js"></script>
+    <script src="script.js"></script>
+    <script src="test.js"></script>
+</body>
+
+</html>
